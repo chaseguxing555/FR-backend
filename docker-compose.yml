@@ -1,0 +1,26 @@
+# @file docker-compose.yml
+# @description 后端生产编排：FastAPI + Uvicorn
+# @module deploy
+# @author fishing-ranking
+# @created 2026-08-25
+# @updated 2026-08-25
+# @version 1.0.0
+
+services:
+  backend:
+    build: .
+    ports:
+      # 供本机前端容器通过 host.docker.internal:5000 访问
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      # 上传图片/视频持久化
+      - backend-uploads:/app/uploads
+      # SQLite 数据文件持久化
+      - backend-instance:/app/instance
+    restart: unless-stopped
+
+volumes:
+  backend-uploads:
+  backend-instance:

@@ -1,0 +1,29 @@
+# @file deploy.yml
+# @description 推送到 main 后 SSH 部署后端容器
+# @module cicd
+# @author fishing-ranking
+# @created 2026-08-25
+# @updated 2026-08-25
+# @version 1.0.0
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: 自动部署
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH 部署
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            git pull origin main
+            docker compose up -d --build

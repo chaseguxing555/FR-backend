@@ -1,0 +1,12 @@
+# 不打进镜像的后端文件
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+instance/*.db
+instance/*.db-journal
+uploads/*
+!uploads/.gitkeep
+*.log
+.DS_Store

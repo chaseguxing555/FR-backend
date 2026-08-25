@@ -1,0 +1,33 @@
+# @file ci.yml
+# @description 推送或 PR 时校验后端可导入
+# @module cicd
+# @author fishing-ranking
+# @created 2026-08-25
+# @updated 2026-08-25
+# @version 1.0.0
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: 校验后端
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖并导入应用
+        run: |
+          pip install -r requirements.txt
+          python -c "from app import app"
