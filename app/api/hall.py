@@ -4,8 +4,8 @@
 @module app.api.hall
 @author fishing-ranking
 @created 2026-08-14
-@updated 2026-08-14
-@version 2.0.0
+@updated 2026-09-10
+@version 2.1.0
 """
 
 from datetime import date
@@ -15,6 +15,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.deps import get_current_admin
+from app.models.admin import Admin
 from app.models.hall_member import HallMember
 from app.services.hall_induction import (
     evaluate_hall_of_fame,
@@ -88,10 +90,11 @@ def get_hall(
 def post_evaluate_hall(
     year: Optional[int] = Query(default=None),
     include_annual: bool = Query(default=True),
+    admin: Admin = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     """
-    post_evaluate_hall - 手动触发名人堂四条路径评定（运维/回填）
+    post_evaluate_hall - 手动触发名人堂四条路径评定（需管理员）
     """
     result = evaluate_hall_of_fame(
         db,

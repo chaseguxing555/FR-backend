@@ -507,6 +507,21 @@ def evaluate_user_titles(db: Session, user_id: int):
     _check_yearly_celebrity(db, user_id)
 
 
+def evaluate_all_user_titles(db: Session) -> dict:
+    """
+    evaluate_all_user_titles - 全量评定称号（含纪录称号同步）
+
+    @param {Session} db - 数据库会话
+    @returns {dict} 评定用户数
+    """
+    user_ids = [row[0] for row in db.query(User.id).all()]
+    # 逐用户评定累计 / 条件称号
+    for user_id in user_ids:
+        evaluate_user_titles(db, user_id)
+    sync_all_record_titles(db)
+    return {"user_count": len(user_ids)}
+
+
 def sync_all_record_titles(db: Session):
     """
     sync_all_record_titles - 对外同步鲤王 / 鲫圣

@@ -8,6 +8,7 @@
 @version 1.0.0
 """
 
+from datetime import date as date_type
 from typing import List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -134,6 +135,7 @@ class UpdateSettingsRequest(BaseModel):
         default=None, description="拒绝原因预设"
     )
     list_per_page: Optional[int] = Field(default=None, description="每页条数")
+    launch_date: Optional[str] = Field(default=None, description="上线日 YYYY-MM-DD")
 
     @field_validator("site_name")
     @classmethod
@@ -179,6 +181,25 @@ class UpdateSettingsRequest(BaseModel):
         if value < 5 or value > 100:
             raise ValueError("每页条数须在 5–100 之间")
         return value
+
+    @field_validator("launch_date")
+    @classmethod
+    def validate_launch_date(cls, value: Optional[str]) -> Optional[str]:
+        """
+        validate_launch_date - 上线日须为 YYYY-MM-DD
+        """
+        # 判断未传
+        if value is None:
+            return None
+        # 判断空串
+        if not value:
+            raise ValueError("上线日不能为空")
+        date_text = value[:10]
+        try:
+            date_type.fromisoformat(date_text)
+        except ValueError as error:
+            raise ValueError("上线日须为 YYYY-MM-DD") from error
+        return date_text
 
     @field_validator("reject_reason_presets")
     @classmethod

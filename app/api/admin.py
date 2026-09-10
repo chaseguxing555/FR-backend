@@ -4,8 +4,8 @@
 @module app.api.admin
 @author fishing-ranking
 @created 2026-08-11
-@updated 2026-08-13
-@version 3.1.0
+@updated 2026-09-10
+@version 3.2.0
 """
 
 import os
@@ -30,13 +30,16 @@ from app.deps import get_current_admin, paginate_query
 from app.models.admin import Admin
 from app.models.audit_log import AuditLog
 from app.models.catch import Catch
+from app.models.hall_member import HallMember
 from app.models.notification import build_audit_notification
+from app.models.reward import RewardAward
 from app.models.system_setting import (
     DEFAULT_SETTINGS,
     SystemSetting,
     get_all_settings_map,
 )
 from app.models.user import User
+from app.models.user_title import FirstSpeciesRecord, UserTitle
 from app.schemas.admin import (
     AdminChangePasswordRequest,
     AdminLoginRequest,
@@ -152,6 +155,9 @@ def get_admin_stats(
             "today_users": db.query(User).filter(User.created_at >= today_start).count(),
             "today_catches": db.query(Catch).filter(Catch.created_at >= today_start).count(),
             "today_audits": db.query(AuditLog).filter(AuditLog.created_at >= today_start).count(),
+            "hall_entry_count": db.query(HallMember).count(),
+            "title_active_count": db.query(UserTitle).filter_by(is_active=1).count(),
+            "reward_award_count": db.query(RewardAward).count(),
         }
     )
 
@@ -333,9 +339,19 @@ def get_admin_users(
 
     query = query.order_by(User.created_at.desc())
     items, total = paginate_query(query, page, per_page)
+    from app.services.title_service import titles_map_for_users
+
+    user_ids = {user_item.id for user_item in items}
+    title_map = titles_map_for_users(db, user_ids)
+    user_list = []
+    # 附带昵称旁主称号
+    for user_item in items:
+        row = user_item.to_dict(mask_phone=True)
+        row["primary_title"] = title_map.get(user_item.id)
+        user_list.append(row)
     return success(
         {
-            "list": [user.to_dict(mask_phone=True) for user in items],
+            "list": user_list,
             "total": total,
             "page": page,
             "per_page": per_page,
@@ -648,3 +664,166 @@ def admin_list_rewards(
             "per_page": per_page,
         }
     )
+
+
+@router.get("/hall")
+def get_admin_hall(
+    year: Optional[int] = Query(default=None),
+    page: int = Query(default=1),
+    per_page: int = Query(default=0),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    get_admin_hall - 名人堂成员列表
+    """
+    from datetime import date
+    from app.services.hall_induction import hall_stats
+
+    page, per_page = _parse_page(page, per_page, db)
+    query = db.query(HallMember)
+    # 判断按年筛选
+    if year is not None:
+        query = query.filter(HallMember.inducted_year == year)
+    query = query.order_by(HallMember.inducted_year.desc(), HallMember.id.desc())
+    items, total = paginate_query(query, page, per_page)
+
+    year_rows = db.query(HallMember.inducted_year).distinct().all()
+    year_set = {row[0] for row in year_rows}
+    today = date.today()
+    for offset in range(6):
+        year_set.add(today.year - offset)
+    available_years = sorted(year_set, reverse=True)
+
+    return success(
+        {
+            "list": [item.to_dict() for item in items],
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "year": year,
+            "stats": hall_stats(db),
+            "available_years": available_years,
+        }
+    )
+
+
+@router.post("/hall/evaluate")
+def admin_evaluate_hall(
+    year: Optional[int] = Query(default=None),
+    include_annual: bool = Query(default=True),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    admin_evaluate_hall - 手动触发名人堂四条路径评定
+    """
+    from app.services.hall_induction import evaluate_hall_of_fame
+
+    result = evaluate_hall_of_fame(
+        db,
+        year=year,
+        notify=True,
+        include_annual=include_annual,
+        do_commit=True,
+    )
+    return success(result, message="名人堂评定完成")
+
+
+@router.get("/titles")
+def get_admin_titles(
+    page: int = Query(default=1),
+    per_page: int = Query(default=0),
+    title_code: Optional[str] = Query(default=None),
+    is_active: Optional[str] = Query(default=None),
+    keyword: Optional[str] = Query(default=None),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    get_admin_titles - 用户称号列表
+    """
+    page, per_page = _parse_page(page, per_page, db)
+    query = db.query(UserTitle, User).join(User, UserTitle.user_id == User.id)
+
+    title_code_text = (title_code or "").strip()
+    # 判断称号编码筛选
+    if title_code_text and title_code_text != "all":
+        query = query.filter(UserTitle.title_code == title_code_text)
+
+    # 判断有效状态筛选
+    if is_active is not None and is_active != "" and is_active != "all":
+        try:
+            active_value = int(is_active)
+        except ValueError:
+            raise_error("状态参数不正确")
+        query = query.filter(UserTitle.is_active == active_value)
+
+    keyword_text = (keyword or "").strip()
+    # 判断昵称关键词
+    if keyword_text:
+        query = query.filter(User.nickname.contains(keyword_text))
+
+    query = query.order_by(UserTitle.granted_at.desc())
+    items, total = paginate_query(query, page, per_page)
+    title_list = []
+    # 拼接用户昵称
+    for title_item, user_item in items:
+        row = title_item.to_dict()
+        row["user_nickname"] = user_item.nickname
+        title_list.append(row)
+    return success(
+        {
+            "list": title_list,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+        }
+    )
+
+
+@router.post("/titles/evaluate")
+def admin_evaluate_titles(
+    user_id: Optional[int] = Query(default=None),
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    admin_evaluate_titles - 评定称号：指定用户或全量
+    """
+    from app.services.title_service import (
+        evaluate_all_user_titles,
+        evaluate_user_titles,
+        sync_all_record_titles,
+    )
+
+    # 判断指定用户
+    if user_id is not None:
+        user_item = db.get(User, user_id)
+        # 判断用户存在
+        if user_item is None:
+            raise_error("用户不存在", http_status=404)
+        evaluate_user_titles(db, user_id)
+        sync_all_record_titles(db)
+        db.commit()
+        return success({"user_id": user_id}, message="该用户称号已评定")
+
+    result = evaluate_all_user_titles(db)
+    db.commit()
+    return success(result, message="全量称号评定完成")
+
+
+@router.get("/first-records")
+def get_admin_first_records(
+    admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    get_admin_first_records - 首个纪录墙
+    """
+    rows = (
+        db.query(FirstSpeciesRecord)
+        .order_by(FirstSpeciesRecord.caught_at.asc())
+        .all()
+    )
+    return success({"list": [row.to_dict() for row in rows]})
