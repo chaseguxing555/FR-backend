@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title="野钓记录榜 API",
         version="3.1.0",
-        docs_url="/docs",
+        docs_url="/api/docs",
         redoc_url="/redoc",
         lifespan=app_lifespan,
     )
