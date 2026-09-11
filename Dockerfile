@@ -3,8 +3,8 @@
 # @module backend
 # @author fishing-ranking
 # @created 2026-08-25
-# @updated 2026-08-25
-# @version 1.0.0
+# @updated 2026-09-11
+# @version 1.1.0
 
 FROM python:3.12-slim
 
@@ -12,7 +12,8 @@ WORKDIR /app
 
 # 先装依赖，避免源码变更时重复下载
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 使用阿里云 PyPI 镜像，避免构建容器访问 pypi.org 失败
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com -r requirements.txt
 
 COPY . .
 

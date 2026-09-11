@@ -3,12 +3,15 @@
 # @module deploy
 # @author fishing-ranking
 # @created 2026-08-25
-# @updated 2026-08-25
-# @version 1.0.0
+# @updated 2026-09-11
+# @version 1.1.0
 
 services:
   backend:
-    build: .
+    build:
+      context: .
+      # 构建时用宿主机 DNS，避免 pip 出现 Temporary failure in name resolution
+      network: host
     ports:
       # 供本机前端容器通过 host.docker.internal:5000 访问
       - "5000:5000"
