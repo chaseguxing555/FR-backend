@@ -4,8 +4,8 @@
 @module app.api.auth
 @author fishing-ranking
 @created 2026-08-11
-@updated 2026-08-13
-@version 2.1.0
+@updated 2026-09-11
+@version 2.2.0
 """
 
 from datetime import datetime

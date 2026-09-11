@@ -4,8 +4,8 @@
 @module app.schemas.auth
 @author fishing-ranking
 @created 2026-08-13
-@updated 2026-08-13
-@version 1.0.0
+@updated 2026-09-11
+@version 1.1.0
 """
 
 import re
