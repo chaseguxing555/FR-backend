@@ -4,8 +4,8 @@
 @module app.schemas.admin
 @author fishing-ranking
 @created 2026-08-13
-@updated 2026-08-13
-@version 1.0.0
+@updated 2026-09-11
+@version 1.1.0
 """
 
 from datetime import date as date_type
@@ -136,6 +136,7 @@ class UpdateSettingsRequest(BaseModel):
     )
     list_per_page: Optional[int] = Field(default=None, description="每页条数")
     launch_date: Optional[str] = Field(default=None, description="上线日 YYYY-MM-DD")
+    icp_number: Optional[str] = Field(default=None, description="ICP备案号")
 
     @field_validator("site_name")
     @classmethod
@@ -200,6 +201,20 @@ class UpdateSettingsRequest(BaseModel):
         except ValueError as error:
             raise ValueError("上线日须为 YYYY-MM-DD") from error
         return date_text
+
+    @field_validator("icp_number")
+    @classmethod
+    def validate_icp_number(cls, value: Optional[str]) -> Optional[str]:
+        """
+        validate_icp_number - ICP备案号长度
+        """
+        # 判断未传
+        if value is None:
+            return None
+        # 判断长度
+        if len(value) > 50:
+            raise ValueError("ICP备案号不能超过50个字符")
+        return value
 
     @field_validator("reject_reason_presets")
     @classmethod

@@ -4,8 +4,8 @@
 @module app.models.system_setting
 @author fishing-ranking
 @created 2026-08-13
-@updated 2026-08-13
-@version 1.1.0
+@updated 2026-09-11
+@version 1.2.0
 """
 
 import json
@@ -34,6 +34,8 @@ DEFAULT_SETTINGS = {
     "list_per_page": 20,
     # 上线日：开榜元老判定用（YYYY-MM-DD）
     "launch_date": "2026-08-01",
+    # ICP 备案号：用户站页脚展示
+    "icp_number": "",
 }
 
 

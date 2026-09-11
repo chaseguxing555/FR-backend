@@ -1,14 +1,15 @@
 """
 @file meta.py
-@description 元数据接口：鱼种、钓法（上榜 / 上传分流）
+@description 元数据接口：鱼种、钓法、站点页脚
 @module app.api.meta
 @author fishing-ranking
 @created 2026-08-11
-@updated 2026-08-14
-@version 2.2.0
+@updated 2026-09-11
+@version 2.3.0
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from app.constants import (
     FISH_SPECIES_LIST,
@@ -20,6 +21,8 @@ from app.constants import (
     RANKING_SPECIES_LIST,
     UPLOAD_METHOD_SPECIES_MAP,
 )
+from app.database import get_db
+from app.models.system_setting import get_all_settings_map
 from app.utils.response import success
 
 
@@ -65,5 +68,18 @@ def get_fishing_methods():
             "personal_only_species": PERSONAL_ONLY_SPECIES,
             "monthly_hot_species": MONTHLY_HOT_SPECIES,
             "monthly_hot_min_weight_kg": MONTHLY_HOT_SPECIES_MIN_WEIGHT_KG,
+        }
+    )
+
+
+@router.get("/site")
+def get_site_meta(db: Session = Depends(get_db)):
+    """
+    get_site_meta - 用户站页脚所需的站点信息
+    """
+    settings_map = get_all_settings_map(db)
+    return success(
+        {
+            "icp_number": settings_map["icp_number"],
         }
     )
