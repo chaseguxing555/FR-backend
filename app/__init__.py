@@ -56,8 +56,10 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title="野钓记录榜 API",
         version="3.1.0",
+        # 文档与 schema 都挂在 /api 下，才能被前端 Nginx 反代到后端
         docs_url="/api/docs",
-        redoc_url="/redoc",
+        redoc_url="/api/redoc",
+        openapi_url="/api/openapi.json",
         lifespan=app_lifespan,
     )
     application.state.started_at = APP_STARTED_AT
@@ -145,7 +147,7 @@ def create_app() -> FastAPI:
             "data": {
                 "frontend": "http://127.0.0.1:5173",
                 "admin": "http://127.0.0.1:5174",
-                "docs": "http://127.0.0.1:5000/docs",
+                "docs": "http://127.0.0.1:5000/api/docs",
                 "health": "http://127.0.0.1:5000/api/health",
             },
         }
